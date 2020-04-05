@@ -29,17 +29,70 @@ const paddle = createRectangle(
     colors.green
 )
 
+const bricks = createBricks()
+
+function createBricks() {
+    let bricks = []
+    let brickRows = 5
+    let brickColumns = 10
+    let brickPadding = 5
+    let brickWidth = (renderer.screenBounds().right / brickColumns) - (2 * brickPadding)
+    let brickHeight = 15
+
+    // init
+    for (let r = 0; r < brickRows; r++) {
+        for (let c = 0; c < brickColumns; c++) {
+            let newBrick = createRectangle(
+                brickPadding + (c * (brickWidth + brickPadding * 2)),
+                brickPadding + (r * (brickHeight + brickPadding * 2)),
+                brickWidth,
+                brickHeight,
+                colors.darkRed,
+                colors.red
+            )
+            bricks.push(newBrick)
+        }
+    }
+
+    return {
+        bricks,
+        draw() {
+            bricks.forEach(b => {
+                renderer.renderRectangle(b.x, b.y, b.width, b.height, b.color, b.outlineColor)
+            })
+        }
+    }
+
+}
+
 // game loop
 
-setInterval(gameLoop, 10)
+let interval = setInterval(gameLoop, 10)
 
 function gameLoop() {
 
+    // update objects
     ball.update()
     paddle.update()
 
+    // collision with paddle
+    if(ball.checkCollision(paddle)){
+        ball.speedY *= -1
+    }
+    // collision with bricks
+    for(let i = 0; i < bricks.bricks.length; i++){
+        if(ball.checkCollision(bricks.bricks[i])){
+            ball.speedY *= -1
+            bricks.bricks.splice(i, 1)
+            break
+        }
+    }
+
+
+    // render objects
     renderer.clear()
 
+    bricks.draw()
     ball.draw()
     paddle.draw()
 }
@@ -50,18 +103,18 @@ function createRectangle(x, y, width, height, color, outlineColor) {
         speedX: 4, speedY: 0,
         update() {
             // check input and update position
-            if(input.keyPressed('ArrowRight')){
+            if (input.keyPressed('ArrowRight')) {
                 this.x += this.speedX
             }
-            if(input.keyPressed('ArrowLeft')){
+            if (input.keyPressed('ArrowLeft')) {
                 this.x -= this.speedX
             }
 
             // check bounds
-            if(this.x + this.width > renderer.screenBounds().right){
+            if (this.x + this.width > renderer.screenBounds().right) {
                 this.x = renderer.screenBounds().right - this.width
             }
-            if(this.x < renderer.screenBounds().left){
+            if (this.x < renderer.screenBounds().left) {
                 this.x = renderer.screenBounds().left
             }
 
@@ -75,23 +128,35 @@ function createRectangle(x, y, width, height, color, outlineColor) {
 function createCircle(x, y, radius, color, outlineColor) {
     return {
         x, y, radius, color, outlineColor,
-        speedX: 2, speedY: -2,
+        speedX: 1, speedY: -1,
         update() {
             // check bounds
             if (this.x + this.speedX + this.radius > renderer.screenBounds().right ||
                 this.x + this.speedX - this.radius < renderer.screenBounds().left) {
                 this.speedX *= -1
             }
-            if (this.y + this.speedY + this.radius > renderer.screenBounds().bottom ||
-                this.y + this.speedY - this.radius < renderer.screenBounds().top) {
+            if (this.y + this.speedY - this.radius < renderer.screenBounds().top) {
                 this.speedY *= -1
             }
+            if (this.y + this.speedY + this.radius > renderer.screenBounds().bottom) {
+                // game over
+                alert('Game Over!')
+                document.location.reload()
+                clearInterval(interval)
+            }
+
             // move
             this.x += this.speedX
             this.y += this.speedY
 
             // collision with paddle?
-            
+        },
+        checkCollision(other) {
+            if (this.x + this.radius >= other.x && this.x - this.radius <= other.x + other.width &&
+                this.y + this.radius >= other.y && this.y - this.radius <= other.y + other.height) {
+                return true
+            }
+            return false
         },
         draw() {
             renderer.renderCircle(this.x, this.y, this.radius, this.color, this.outlineColor)
