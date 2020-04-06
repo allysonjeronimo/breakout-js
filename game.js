@@ -1,5 +1,3 @@
-// Doc: https://developer.mozilla.org/en-US/docs/Games/Tutorials/2D_Breakout_game_pure_JavaScript/Move_the_ball
-
 // colors
 let colors = {
     red: '#ff5555',
@@ -31,39 +29,22 @@ const paddle = createRectangle(
 
 const bricks = createBricks()
 
-function createBricks() {
-    let bricks = []
-    let brickRows = 5
-    let brickColumns = 10
-    let brickPadding = 5
-    let brickWidth = (renderer.screenBounds().right / brickColumns) - (2 * brickPadding)
-    let brickHeight = 15
+const textScore = createText(10, 22, 'Arial', '18px', colors.green, 'left')
 
-    // init
-    for (let r = 0; r < brickRows; r++) {
-        for (let c = 0; c < brickColumns; c++) {
-            let newBrick = createRectangle(
-                brickPadding + (c * (brickWidth + brickPadding * 2)),
-                brickPadding + (r * (brickHeight + brickPadding * 2)),
-                brickWidth,
-                brickHeight,
-                colors.darkRed,
-                colors.red
-            )
-            bricks.push(newBrick)
-        }
-    }
-
+function createText(x, y, font, size, color, align, defaultValue){
     return {
-        bricks,
-        draw() {
-            bricks.forEach(b => {
-                renderer.renderRectangle(b.x, b.y, b.width, b.height, b.color, b.outlineColor)
-            })
+        x, y, font, size, color, align, defaultValue,
+
+        draw(value){
+            if(value){
+                defaultValue = value
+            }
+            renderer.renderText(x, y, font, size, color, align, defaultValue)
         }
     }
-
 }
+
+let score = 0
 
 // game loop
 
@@ -80,14 +61,22 @@ function gameLoop() {
         ball.speedY *= -1
     }
     // collision with bricks
-    for(let i = 0; i < bricks.bricks.length; i++){
-        if(ball.checkCollision(bricks.bricks[i])){
+    for(let i = 0; i < bricks.bricksArray.length; i++){
+        if(ball.checkCollision(bricks.bricksArray[i])){
+            score++
             ball.speedY *= -1
-            bricks.bricks.splice(i, 1)
+            bricks.bricksArray.splice(i, 1)
             break
         }
     }
 
+    // check if win
+    if(bricks.initialBricksAmount == score){
+        alert('You Win!!!')
+        score = 0
+        document.location.reload()
+        clearInterval(interval)
+    }
 
     // render objects
     renderer.clear()
@@ -95,7 +84,9 @@ function gameLoop() {
     bricks.draw()
     ball.draw()
     paddle.draw()
+    textScore.draw('Score: ' + score)
 }
+
 
 function createRectangle(x, y, width, height, color, outlineColor) {
     return {
@@ -141,6 +132,7 @@ function createCircle(x, y, radius, color, outlineColor) {
             if (this.y + this.speedY + this.radius > renderer.screenBounds().bottom) {
                 // game over
                 alert('Game Over!')
+                score = 0
                 document.location.reload()
                 clearInterval(interval)
             }
@@ -148,8 +140,6 @@ function createCircle(x, y, radius, color, outlineColor) {
             // move
             this.x += this.speedX
             this.y += this.speedY
-
-            // collision with paddle?
         },
         checkCollision(other) {
             if (this.x + this.radius >= other.x && this.x - this.radius <= other.x + other.width &&
@@ -162,6 +152,42 @@ function createCircle(x, y, radius, color, outlineColor) {
             renderer.renderCircle(this.x, this.y, this.radius, this.color, this.outlineColor)
         }
     }
+}
+
+function createBricks() {
+    let bricksArray = []
+    let brickRows = 8
+    let brickColumns = 20
+    let brickPadding = 5
+    let brickWidth = (renderer.screenBounds().right / brickColumns) - (2 * brickPadding)
+    let brickHeight = 15
+    let topOffset = 28
+
+    // init
+    for (let r = 0; r < brickRows; r++) {
+        for (let c = 0; c < brickColumns; c++) {
+            let newBrick = createRectangle(
+                brickPadding + (c * (brickWidth + brickPadding * 2)),
+                brickPadding + (r * (brickHeight + brickPadding * 2)) + topOffset,
+                brickWidth,
+                brickHeight,
+                colors.darkRed,
+                colors.red
+            )
+            bricksArray.push(newBrick)
+        }
+    }
+
+    return {
+        bricksArray,
+        initialBricksAmount : brickRows * brickColumns,
+        draw() {
+            bricksArray.forEach(b => {
+                renderer.renderRectangle(b.x, b.y, b.width, b.height, b.color, b.outlineColor)
+            })
+        }
+    }
+
 }
 
 // renderer
@@ -181,6 +207,13 @@ function Renderer(width, height) {
 
     function clear() {
         context.clearRect(0, 0, canvas.width, canvas.height)
+    }
+
+    function renderText(x, y, font, size, color, align, value){
+        context.font = size + ' ' + font
+        context.fillStyle = color
+        context.textAlign = align
+        context.fillText(value, x, y)
     }
 
     function renderCircle(x, y, radius, color, outlineColor) {
@@ -230,6 +263,7 @@ function Renderer(width, height) {
         clear,
         renderCircle,
         renderRectangle,
+        renderText,
         screenBounds
     }
 }
