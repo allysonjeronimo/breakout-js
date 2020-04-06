@@ -30,13 +30,14 @@ const paddle = createRectangle(
 const bricks = createBricks()
 
 const textScore = createText(10, 22, 'Arial', '18px', colors.green, 'left')
+const textLives = createText(renderer.screenBounds().right/2, 22, 'Arial', '18px', colors.green, 'center')
 
-function createText(x, y, font, size, color, align, defaultValue){
+function createText(x, y, font, size, color, align, defaultValue) {
     return {
         x, y, font, size, color, align, defaultValue,
 
-        draw(value){
-            if(value){
+        draw(value) {
+            if (value) {
                 defaultValue = value
             }
             renderer.renderText(x, y, font, size, color, align, defaultValue)
@@ -45,10 +46,13 @@ function createText(x, y, font, size, color, align, defaultValue){
 }
 
 let score = 0
+let lives = 3
 
 // game loop
 
-let interval = setInterval(gameLoop, 10)
+// let interval = setInterval(gameLoop, 10)
+
+gameLoop()
 
 function gameLoop() {
 
@@ -57,12 +61,12 @@ function gameLoop() {
     paddle.update()
 
     // collision with paddle
-    if(ball.checkCollision(paddle)){
+    if (ball.checkCollision(paddle)) {
         ball.speedY *= -1
     }
     // collision with bricks
-    for(let i = 0; i < bricks.bricksArray.length; i++){
-        if(ball.checkCollision(bricks.bricksArray[i])){
+    for (let i = 0; i < bricks.bricksArray.length; i++) {
+        if (ball.checkCollision(bricks.bricksArray[i])) {
             score++
             ball.speedY *= -1
             bricks.bricksArray.splice(i, 1)
@@ -71,11 +75,11 @@ function gameLoop() {
     }
 
     // check if win
-    if(bricks.initialBricksAmount == score){
+    if (bricks.initialBricksAmount == score) {
         alert('You Win!!!')
         score = 0
         document.location.reload()
-        clearInterval(interval)
+        //clearInterval(interval)
     }
 
     // render objects
@@ -85,6 +89,9 @@ function gameLoop() {
     ball.draw()
     paddle.draw()
     textScore.draw('Score: ' + score)
+    textLives.draw('Lives: ' + lives)
+
+    requestAnimationFrame(gameLoop)
 }
 
 
@@ -100,6 +107,20 @@ function createRectangle(x, y, width, height, color, outlineColor) {
             if (input.keyPressed('ArrowLeft')) {
                 this.x -= this.speedX
             }
+
+            // mouse position
+            // let mousePosition = input.mousePosition()
+
+            // if (mousePosition.x > renderer.screenBounds().left &&
+            //     mousePosition.x < renderer.screenBounds().right) {
+
+            //     if (mousePosition.x > this.x + this.width / 2) {
+            //         this.x += this.speedX
+            //     }
+            //     if (mousePosition.x < this.x + this.width / 2) {
+            //         this.x -= this.speedX
+            //     }
+            // }
 
             // check bounds
             if (this.x + this.width > renderer.screenBounds().right) {
@@ -120,6 +141,14 @@ function createCircle(x, y, radius, color, outlineColor) {
     return {
         x, y, radius, color, outlineColor,
         speedX: 1, speedY: -1,
+        
+        reset(){
+            this.x = renderer.screenBounds().right/2,
+            this.y = renderer.screenBounds().bottom-40
+            this.speedX = 1
+            this.speedY = -1
+        },
+
         update() {
             // check bounds
             if (this.x + this.speedX + this.radius > renderer.screenBounds().right ||
@@ -131,10 +160,15 @@ function createCircle(x, y, radius, color, outlineColor) {
             }
             if (this.y + this.speedY + this.radius > renderer.screenBounds().bottom) {
                 // game over
-                alert('Game Over!')
-                score = 0
-                document.location.reload()
-                clearInterval(interval)
+                lives--
+                this.reset()
+                // reset ball position
+                if (!lives) {
+                    alert('Game Over!')
+                    score = 0
+                    document.location.reload()
+                    clearInterval(interval)
+                }
             }
 
             // move
@@ -180,7 +214,7 @@ function createBricks() {
 
     return {
         bricksArray,
-        initialBricksAmount : brickRows * brickColumns,
+        initialBricksAmount: brickRows * brickColumns,
         draw() {
             bricksArray.forEach(b => {
                 renderer.renderRectangle(b.x, b.y, b.width, b.height, b.color, b.outlineColor)
@@ -209,7 +243,7 @@ function Renderer(width, height) {
         context.clearRect(0, 0, canvas.width, canvas.height)
     }
 
-    function renderText(x, y, font, size, color, align, value){
+    function renderText(x, y, font, size, color, align, value) {
         context.font = size + ' ' + font
         context.fillStyle = color
         context.textAlign = align
@@ -272,6 +306,7 @@ function Renderer(width, height) {
 
 function Input() {
     let currentKeys = []
+    let currentMousePosition = {}
 
     window.addEventListener('keydown', function (e) {
         let index = currentKeys.indexOf(e.key)
@@ -287,12 +322,23 @@ function Input() {
         }
     })
 
+    window.addEventListener('mousemove', function (e) {
+        currentMousePosition = {
+            x: e.clientX, y: e.clientY
+        }
+    })
+
     function keyPressed(key) {
         return currentKeys.indexOf(key) != -1
     }
 
+    function mousePosition() {
+        return currentMousePosition
+    }
+
     return {
-        keyPressed
+        keyPressed,
+        mousePosition
     }
 }
 
